@@ -5,7 +5,7 @@
   "author": "rakeshkundan",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rakeshkundan/castkit.git"
+    "url": "https://github.com/Sysmentix/castkit.git"
   },
   "description": "Node.js live streaming backend with multi-protocol support (WebRTC, HLS, WebSocket, RTMP) and CDN scalability",
   "keywords": [
