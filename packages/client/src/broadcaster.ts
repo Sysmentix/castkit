@@ -74,6 +74,22 @@ export class StreamBroadcasterClient extends TypedEventEmitter<BroadcasterEvents
     return this.isSharingScreen;
   }
 
+  public isScreenSharingActive(): boolean {
+    return this.isSharingScreen;
+  }
+
+  public isAudioMuted(): boolean {
+    if (!this.localStream) return false;
+    const audioTrack = this.localStream.getAudioTracks()[0];
+    return audioTrack ? !audioTrack.enabled : false;
+  }
+
+  public isVideoPaused(): boolean {
+    if (!this.localStream) return false;
+    const videoTrack = this.localStream.getVideoTracks()[0];
+    return videoTrack ? !videoTrack.enabled : false;
+  }
+
   /**
    * Start broadcast: acquire media, connect signaling, and go LIVE
    */

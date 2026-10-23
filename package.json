@@ -12,12 +12,14 @@
     "build": "npm run build --workspaces --if-present",
     "clean": "npm run clean --workspaces --if-present && rm -rf examples/nextjs-demo/.next",
     "dev:server": "npm run dev --workspace=castkit-example-server",
-    "dev:next": "npm run dev --workspace=castkit-example-nextjs"
+    "dev:next": "npm run dev --workspace=castkit-example-nextjs",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
     "concurrently": "^10.0.6",
     "tsx": "^4.23.15",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^5.0.5"
   }
 }

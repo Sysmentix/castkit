@@ -23,20 +23,34 @@ export interface StreamHlsBuffer {
   qualities: ABRQuality[];
 }
 
+export interface HlsEngineOptions {
+  dvrWindowSeconds?: number;
+  segmentDuration?: number;
+}
+
 export class HlsEngine {
   private buffers: Map<string, StreamHlsBuffer> = new Map();
+  private defaultDvrWindowSeconds: number;
+  private defaultSegmentDuration: number;
 
-  constructor() {}
+  constructor(options?: HlsEngineOptions) {
+    this.defaultDvrWindowSeconds = options?.dvrWindowSeconds ?? DEFAULT_DVR_WINDOW_SECONDS;
+    this.defaultSegmentDuration = options?.segmentDuration ?? DEFAULT_HLS_SEGMENT_DURATION_SEC;
+  }
 
-  public initStream(streamId: string, dvrWindowSeconds: number = DEFAULT_DVR_WINDOW_SECONDS): StreamHlsBuffer {
+  public getBuffer(streamId: string): StreamHlsBuffer | undefined {
+    return this.buffers.get(streamId);
+  }
+
+  public initStream(streamId: string, dvrWindowSeconds?: number): StreamHlsBuffer {
     let buf = this.buffers.get(streamId);
     if (!buf) {
       buf = {
         streamId,
         sequenceCounter: 1,
         segments: [],
-        dvrWindowSeconds,
-        targetDuration: DEFAULT_HLS_SEGMENT_DURATION_SEC,
+        dvrWindowSeconds: dvrWindowSeconds ?? this.defaultDvrWindowSeconds,
+        targetDuration: this.defaultSegmentDuration,
         qualities: [
           { id: '1080p', label: '1080p (FHD)', width: 1920, height: 1080, bitrateKbps: 4500 },
           { id: '720p', label: '720p (HD)', width: 1280, height: 720, bitrateKbps: 2500, isDefault: true },

@@ -41,7 +41,7 @@ export class StreamPlayerClient extends TypedEventEmitter<PlayerEvents> {
   private videoElement: HTMLVideoElement | null = null;
   private ws: WebSocket | null = null;
   private pc: RTCPeerConnection | null = null;
-  private remoteStream: MediaStream = new MediaStream();
+  private remoteStream: MediaStream | null = typeof MediaStream !== 'undefined' ? new MediaStream() : null;
   private status: StreamStatus = 'idle';
   private activeProtocol: StreamProtocol = 'webrtc';
   private participantId: string = '';
@@ -49,6 +49,7 @@ export class StreamPlayerClient extends TypedEventEmitter<PlayerEvents> {
   private iceServers: RTCIceServer[] = [];
   private statsInterval: any = null;
   private syncInterval: any = null;
+  private currentViewerCount: number = 0;
 
   constructor(options: PlayerOptions) {
     super();
@@ -71,9 +72,13 @@ export class StreamPlayerClient extends TypedEventEmitter<PlayerEvents> {
     return this.activeProtocol;
   }
 
+  public getViewerCount(): number {
+    return this.currentViewerCount;
+  }
+
   public attachVideoElement(video: HTMLVideoElement): void {
     this.videoElement = video;
-    if (this.remoteStream.getTracks().length > 0) {
+    if (this.remoteStream && this.remoteStream.getTracks().length > 0) {
       this.videoElement.srcObject = this.remoteStream;
       if (this.options.autoPlay) {
         this.videoElement.play().catch((err) => {
@@ -181,7 +186,8 @@ export class StreamPlayerClient extends TypedEventEmitter<PlayerEvents> {
             }
 
             case 'viewer_count_update': {
-              this.emit('viewerCount', message.data.count);
+              this.currentViewerCount = message.data.count || 0;
+              this.emit('viewerCount', this.currentViewerCount);
               break;
             }
 
@@ -224,7 +230,7 @@ export class StreamPlayerClient extends TypedEventEmitter<PlayerEvents> {
   private initWebRtc(): void {
     this.pc = new RTCPeerConnection({ iceServers: this.iceServers });
 
-    this.pc.ontrack = (event) => {
+    this.pc.ontrack = (event: RTCTrackEvent) => {
       const stream = event.streams && event.streams[0] ? event.streams[0] : new MediaStream([event.track]);
       this.remoteStream = stream;
 
@@ -246,7 +252,7 @@ export class StreamPlayerClient extends TypedEventEmitter<PlayerEvents> {
       this.emit('remoteStreamReady', stream);
     };
 
-    this.pc.onicecandidate = (event) => {
+    this.pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
       if (event.candidate && this.ws?.readyState === WebSocket.OPEN) {
         const iceMsg = createMessage(
           'ice_candidate',
@@ -391,7 +397,7 @@ export class StreamPlayerClient extends TypedEventEmitter<PlayerEvents> {
         let width = 0;
         let height = 0;
 
-        report.forEach((stat) => {
+        report.forEach((stat: any) => {
           if (stat.type === 'inbound-rtp' && stat.kind === 'video') {
             fps = stat.framesPerSecond || 0;
             packetLoss = stat.packetsLost || 0;

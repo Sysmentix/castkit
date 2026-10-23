@@ -43,7 +43,11 @@ export class WebSocketRelay {
     // Send recent chunks in sequence
     for (const chunk of buffer) {
       const msg = createMessage('stream_chunk', chunk, room.streamId, room.broadcaster?.participant.id);
-      viewerWs.send(JSON.stringify(msg));
+      try {
+        viewerWs.send(JSON.stringify(msg));
+      } catch {
+        break;
+      }
     }
   }
 

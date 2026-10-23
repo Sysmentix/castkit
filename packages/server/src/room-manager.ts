@@ -72,14 +72,18 @@ export class StreamRoom {
     // Send to broadcaster if not excluded
     if (this.broadcaster && this.broadcaster.participant.id !== excludeParticipantId) {
       if (this.broadcaster.ws.readyState === WebSocket.OPEN) {
-        this.broadcaster.ws.send(raw);
+        try {
+          this.broadcaster.ws.send(raw);
+        } catch {}
       }
     }
 
     // Send to viewers
     for (const [id, viewer] of this.viewers.entries()) {
       if (id !== excludeParticipantId && viewer.ws.readyState === WebSocket.OPEN) {
-        viewer.ws.send(raw);
+        try {
+          viewer.ws.send(raw);
+        } catch {}
       }
     }
   }
@@ -88,7 +92,9 @@ export class StreamRoom {
     const raw = JSON.stringify(message);
     for (const viewer of this.viewers.values()) {
       if (viewer.ws.readyState === WebSocket.OPEN) {
-        viewer.ws.send(raw);
+        try {
+          viewer.ws.send(raw);
+        } catch {}
       }
     }
   }

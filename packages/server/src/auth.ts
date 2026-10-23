@@ -40,13 +40,17 @@ export class AuthGuard {
   public async authenticate(ctx: AuthContext): Promise<AuthResult> {
     // If a custom auth hook is provided, use it
     if (this.hook) {
-      const res = await this.hook(ctx);
-      if (typeof res === 'boolean') {
-        return res
-          ? { valid: true, userId: `user_${Date.now()}` }
-          : { valid: false, error: 'Unauthorized by auth hook' };
+      try {
+        const res = await this.hook(ctx);
+        if (typeof res === 'boolean') {
+          return res
+            ? { valid: true, userId: `user_${Date.now()}` }
+            : { valid: false, error: 'Unauthorized by auth hook' };
+        }
+        return res;
+      } catch (err) {
+        return { valid: false, error: 'Internal authentication error: ' + (err as Error).message };
       }
-      return res;
     }
 
     // Default stream key validation for broadcasters if keys are defined

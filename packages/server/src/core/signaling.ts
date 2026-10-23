@@ -155,7 +155,7 @@ export function parseSignalingMessage(raw: string | ArrayBuffer | Uint8Array): S
   try {
     const text = typeof raw === 'string' ? raw : new TextDecoder().decode(raw);
     const parsed = JSON.parse(text);
-    if (parsed && typeof parsed.type === 'string') {
+    if (parsed && typeof parsed.type === 'string' && parsed.data !== undefined) {
       return parsed as SignalingMessage;
     }
   } catch {
@@ -163,3 +163,13 @@ export function parseSignalingMessage(raw: string | ArrayBuffer | Uint8Array): S
   }
   return null;
 }
+
+export function isSignalingMessage(msg: unknown): msg is SignalingMessage {
+  return (
+    typeof msg === 'object' &&
+    msg !== null &&
+    typeof (msg as any).type === 'string' &&
+    (msg as any).data !== undefined
+  );
+}
+
