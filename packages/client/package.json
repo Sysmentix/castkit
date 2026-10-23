@@ -3,6 +3,10 @@
   "version": "1.0.1",
   "license": "MIT",
   "author": "rakeshkundan",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rakeshkundan/castkit.git"
+  },
   "description": "Full browser live video streaming SDK with WebRTC, HLS fallback, and ready-to-use React components and hooks",
   "keywords": [
     "webrtc",
