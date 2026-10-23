@@ -125,15 +125,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org/'
           cache: 'npm'
-
-      - name: 🔐 Authenticate with npm
-        if: ${{ env.NODE_AUTH_TOKEN != '' }}
-        run: |
-          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: 📦 Install Dependencies
         run: npm ci
@@ -162,8 +154,6 @@ jobs:
             echo "castkit-server@$SERVER_LOCAL is already published on npm. Skipping."
             echo "server_published=false" >> $GITHUB_OUTPUT
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: 🔍 Check and Publish castkit-client
         if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all' || github.event.inputs.target == 'castkit-client' }}
@@ -183,8 +173,6 @@ jobs:
             echo "castkit-client@$CLIENT_LOCAL is already published on npm. Skipping."
             echo "client_published=false" >> $GITHUB_OUTPUT
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: 🏷️ Create Git Tag and GitHub Release
         if: ${{ steps.publish_server.outputs.server_published == 'true' || steps.publish_client.outputs.client_published == 'true' }}
