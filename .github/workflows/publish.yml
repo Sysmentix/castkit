@@ -1,25 +1,23 @@
 name: Publish Packages to npm
 
 on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
   workflow_dispatch:
     inputs:
-      action:
-        description: 'Release Action'
-        required: true
-        default: 'create-release-pr'
-        type: choice
-        options:
-          - 'create-release-pr'
-          - 'publish-to-npm'
       bump:
-        description: 'Version Bump (for create-release-pr)'
+        description: 'Version Bump'
         required: true
         default: 'patch'
         type: choice
         options:
-          - 'patch' # 1.0.2 -> 1.0.3
-          - 'minor' # 1.0.2 -> 1.1.0
-          - 'major' # 1.0.2 -> 2.0.0
+          - 'patch'
+          - 'minor'
+          - 'major'
+          - 'publish-current'
       target:
         description: 'Target Package'
         required: true
@@ -37,11 +35,11 @@ permissions:
 
 jobs:
   # =========================================================================
-  # Job 1: Automated Release PR (Complies with branch rulesets on main)
+  # Job 1: Automated Release PR (Triggered when you click Run workflow)
   # =========================================================================
-  release_pr:
+  create_release_pr:
     name: 📝 Create Release Pull Request
-    if: ${{ github.event.inputs.action == 'create-release-pr' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bump != 'publish-current' }}
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout Repository
@@ -97,11 +95,10 @@ jobs:
             --base main \
             --head "$BRANCH" \
             --title "chore(release): bump version to v${NEW_VER}" \
-            --body "Automated release PR for v${NEW_VER}. Target: ${TARGET}, Bump: ${BUMP}. Once merged, run publish-to-npm to publish to npm." \
+            --body "Automated release PR for v${NEW_VER}. Target: ${TARGET}, Bump: ${BUMP}. Merging this PR will automatically publish packages to npm." \
             || gh pr list --head "$BRANCH" --json url --jq '.[0].url')
 
           echo "PR_URL=$PR_URL" >> $GITHUB_OUTPUT
-
           echo "### 🚀 Release PR Created!" >> $GITHUB_STEP_SUMMARY
           echo "A release Pull Request has been opened targeting \`main\`:" >> $GITHUB_STEP_SUMMARY
           echo "🔗 [View and Merge Pull Request]($PR_URL)" >> $GITHUB_STEP_SUMMARY
@@ -109,16 +106,19 @@ jobs:
           GH_TOKEN: ${{ secrets.ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
 
   # =========================================================================
-  # Job 2: Build, Test & Publish to npm (Manual trigger only)
+  # Job 2: Publish to npm (Triggers automatically ONLY when Release PR is merged)
   # =========================================================================
   publish:
     name: 🚀 Publish Packages to npm
-    if: ${{ github.event.inputs.action == 'publish-to-npm' }}
+    if: >-
+      (github.event_name == 'pull_request' && github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.bump == 'publish-current')
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout Repository
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
       - name: 🟢 Setup Node.js
@@ -145,7 +145,7 @@ jobs:
         run: npm test
 
       - name: 🔍 Check and Publish castkit-server
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'castkit-server' }}
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all' || github.event.inputs.target == 'castkit-server' }}
         id: publish_server
         run: |
           SERVER_LOCAL=$(node -p "require('./packages/server/package.json').version")
@@ -166,7 +166,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: 🔍 Check and Publish castkit-client
-        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'castkit-client' }}
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all' || github.event.inputs.target == 'castkit-client' }}
         id: publish_client
         run: |
           CLIENT_LOCAL=$(node -p "require('./packages/client/package.json').version")
