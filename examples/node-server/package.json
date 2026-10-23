@@ -1,0 +1,23 @@
+{
+  "name": "castkit-example-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Example Node.js live streaming server powered by castkit-server",
+  "type": "module",
+  "scripts": {
+    "start": "node dist/index.js",
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "castkit-server": "^1.0.0",
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "castkit-client",
+  "version": "1.0.1",
+  "license": "MIT",
+  "author": "rakeshkundan",
+  "description": "Full browser live video streaming SDK with WebRTC, HLS fallback, and ready-to-use React components and hooks",
+  "keywords": [
+    "webrtc",
+    "streaming",
+    "live-streaming",
+    "hls",
+    "video-player",
+    "broadcasting",
+    "react",
+    "nextjs",
+    "hooks"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.5.4"
+  }
+}

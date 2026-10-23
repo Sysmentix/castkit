@@ -1,0 +1,43 @@
+{
+  "name": "castkit-server",
+  "version": "1.0.1",
+  "license": "MIT",
+  "author": "rakeshkundan",
+  "description": "Node.js live streaming backend with multi-protocol support (WebRTC, HLS, WebSocket, RTMP) and CDN scalability",
+  "keywords": [
+    "webrtc",
+    "streaming",
+    "live-streaming",
+    "hls",
+    "abr",
+    "video",
+    "broadcasting",
+    "sfu",
+    "websocket"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.12",
+    "typescript": "^5.5.4"
+  }
+}

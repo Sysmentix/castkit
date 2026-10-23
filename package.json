@@ -1,0 +1,23 @@
+{
+  "name": "castkit",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise-grade live video streaming library for Node.js backends and React/Next.js frontends",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"server,next\" -c \"blue,magenta\" \"npm run dev:server\" \"npm run dev:next\"",
+    "build": "npm run build --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present && rm -rf examples/nextjs-demo/.next",
+    "dev:server": "npm run dev --workspace=castkit-example-server",
+    "dev:next": "npm run dev --workspace=castkit-example-nextjs"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "concurrently": "^10.0.6",
+    "tsx": "^4.23.15",
+    "typescript": "^5.5.4"
+  }
+}
