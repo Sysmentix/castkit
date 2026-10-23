@@ -57,7 +57,11 @@ describe('Signaling Message Schema & Edge Cases', () => {
       streamId: 's1',
       senderId: 'u1',
       timestamp: 12345,
-      data: { candidate: { candidate: 'candidate:...', sdpMid: '0', sdpMLineIndex: 0 } },
+      data: {
+        from: 'u1',
+        to: 'host-1',
+        candidate: { candidate: 'candidate:...', sdpMid: '0', sdpMLineIndex: 0 },
+      },
     };
 
     expect(isSignalingMessage(validMsg)).toBe(true);
@@ -71,15 +75,16 @@ describe('Signaling Message Schema & Edge Cases', () => {
     const largeSdp = 'v=0\r\no=- 123456 2 IN IP4 127.0.0.1\r\n' + 'a=candidate:1 1 UDP 2130706431 192.168.1.1 5000 typ host\r\n'.repeat(1200);
     expect(largeSdp.length).toBeGreaterThan(64000);
 
-    const msg = createMessage('webrtc_offer', {
+    const msg = createMessage('offer', {
+      from: 'host-1',
+      to: 'viewer-99',
       sdp: { type: 'offer', sdp: largeSdp },
-      targetId: 'viewer-99',
     }, 'stream-hd', 'host-1');
 
     const serialized = JSON.stringify(msg);
     const parsed = parseSignalingMessage(serialized);
     expect(parsed).not.toBeNull();
-    expect(parsed?.type).toBe('webrtc_offer');
+    expect(parsed?.type).toBe('offer');
     expect((parsed?.data as any).sdp.sdp.length).toBe(largeSdp.length);
   });
 
@@ -103,12 +108,13 @@ describe('Signaling Message Schema & Edge Cases', () => {
 
   it('should accept ICE candidates with nullable or missing sdpMid and sdpMLineIndex', () => {
     const candidateMsg = createMessage('ice_candidate', {
+      from: 'peer-abc',
+      to: 'host-1',
       candidate: {
         candidate: 'candidate:842163049 1 udp 1677729535 192.168.1.2 56143 typ srflx raddr 10.0.0.1 rport 56143',
         sdpMid: null,
         sdpMLineIndex: null,
       },
-      targetId: 'peer-abc',
     }, 'stream-ice');
 
     const serialized = JSON.stringify(candidateMsg);

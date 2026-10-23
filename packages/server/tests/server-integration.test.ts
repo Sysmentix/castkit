@@ -91,9 +91,10 @@ describe('CastKit Server End-to-End WebSocket Integration', () => {
       JSON.stringify(
         createMessage('chat_message', {
           id: 'msg-1',
+          streamId: 'integration-stage',
           senderId: 'host-user',
           senderName: 'Host User',
-          message: 'Hello everyone!',
+          text: 'Hello everyone!',
           timestamp: Date.now(),
         }, 'integration-stage', 'host-user')
       )
@@ -103,7 +104,7 @@ describe('CastKit Server End-to-End WebSocket Integration', () => {
 
     const chatReceived = viewerReceived.find((m) => m.type === 'chat_message');
     expect(chatReceived).toBeDefined();
-    expect(chatReceived.data.message).toBe('Hello everyone!');
+    expect(chatReceived.data.text).toBe('Hello everyone!');
 
     // 4. Host disconnects abruptly -> viewer should receive stream_ended
     hostWs.close();

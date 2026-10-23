@@ -21,16 +21,18 @@ describe('WebSocketRelay & Chunk Ring Buffer Edge Cases', () => {
     const v2 = createMockSocket();
 
     room.addViewer(
-      { id: 'v1', streamId: 'tech-talk', role: 'viewer', joinedAt: Date.now() },
+      { id: 'v1', role: 'viewer', joinedAt: Date.now() },
       v1
     );
     room.addViewer(
-      { id: 'v2', streamId: 'tech-talk', role: 'viewer', joinedAt: Date.now() },
+      { id: 'v2', role: 'viewer', joinedAt: Date.now() },
       v2
     );
 
     relay.handleChunk(room, {
+      streamId: 'tech-talk',
       sequence: 1,
+      isKeyframe: true,
       timestamp: Date.now(),
       mimeType: 'video/webm; codecs=vp8',
       data: 'base64-encoded-video-bytes',
@@ -50,7 +52,9 @@ describe('WebSocketRelay & Chunk Ring Buffer Edge Cases', () => {
 
     for (let i = 0; i < 25; i++) {
       relay.handleChunk(room, {
+        streamId: 'speed-test',
         sequence: i,
+        isKeyframe: i % 5 === 0,
         timestamp: Date.now(),
         mimeType: 'video/webm',
         data: `chunk-${i}`,
@@ -72,7 +76,9 @@ describe('WebSocketRelay & Chunk Ring Buffer Edge Cases', () => {
     const room = new StreamRoom('ephemeral');
 
     relay.handleChunk(room, {
+      streamId: 'ephemeral',
       sequence: 1,
+      isKeyframe: true,
       timestamp: Date.now(),
       mimeType: 'video/webm',
       data: 'chunk-1',
@@ -89,7 +95,9 @@ describe('WebSocketRelay & Chunk Ring Buffer Edge Cases', () => {
     const relay = new WebSocketRelay();
     const room = new StreamRoom('resilient-stream');
     relay.handleChunk(room, {
+      streamId: 'resilient-stream',
       sequence: 1,
+      isKeyframe: true,
       timestamp: Date.now(),
       mimeType: 'video/webm',
       data: 'chunk-1',
@@ -119,8 +127,8 @@ describe('WebSocketRelay & Chunk Ring Buffer Edge Cases', () => {
     const roomA = new StreamRoom('room-a');
     const roomB = new StreamRoom('room-b');
 
-    relay.handleChunk(roomA, { sequence: 100, timestamp: Date.now(), mimeType: 'video/webm', data: 'data-a' });
-    relay.handleChunk(roomB, { sequence: 200, timestamp: Date.now(), mimeType: 'video/webm', data: 'data-b' });
+    relay.handleChunk(roomA, { streamId: 'room-a', sequence: 100, isKeyframe: true, timestamp: Date.now(), mimeType: 'video/webm', data: 'data-a' });
+    relay.handleChunk(roomB, { streamId: 'room-b', sequence: 200, isKeyframe: true, timestamp: Date.now(), mimeType: 'video/webm', data: 'data-b' });
 
     const viewerA = createMockSocket();
     const viewerB = createMockSocket();

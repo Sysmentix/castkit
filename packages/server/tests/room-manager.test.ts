@@ -33,7 +33,7 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
 
     // Add broadcaster
     room.setBroadcaster(
-      { id: 'host-1', streamId: 'keynote', role: 'broadcaster', joinedAt: Date.now() },
+      { id: 'host-1', role: 'broadcaster', joinedAt: Date.now() },
       hostWs
     );
     expect(room.broadcaster?.participant.id).toBe('host-1');
@@ -41,11 +41,11 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
 
     // Add viewers
     room.addViewer(
-      { id: 'viewer-1', streamId: 'keynote', role: 'viewer', joinedAt: Date.now() },
+      { id: 'viewer-1', role: 'viewer', joinedAt: Date.now() },
       viewer1Ws
     );
     room.addViewer(
-      { id: 'viewer-2', streamId: 'keynote', role: 'viewer', joinedAt: Date.now() },
+      { id: 'viewer-2', role: 'viewer', joinedAt: Date.now() },
       viewer2Ws
     );
 
@@ -59,7 +59,7 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
 
     const v1 = createMockWebSocket();
     room.addViewer(
-      { id: 'v1', streamId: 'live-chat', role: 'viewer', joinedAt: Date.now() },
+      { id: 'v1', role: 'viewer', joinedAt: Date.now() },
       v1
     );
 
@@ -77,7 +77,7 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
 
     const hostWs = createMockWebSocket();
     room.setBroadcaster(
-      { id: 'host-ceo', streamId: 'townhall', role: 'broadcaster', joinedAt: Date.now() },
+      { id: 'host-ceo', role: 'broadcaster', joinedAt: Date.now() },
       hostWs
     );
 
@@ -98,19 +98,26 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
     const peer2Ws = createMockWebSocket();
 
     room.addViewer(
-      { id: 'sender', streamId: 'broadcast-test', role: 'viewer', joinedAt: Date.now() },
+      { id: 'sender', role: 'viewer', joinedAt: Date.now() },
       senderWs
     );
     room.addViewer(
-      { id: 'peer-1', streamId: 'broadcast-test', role: 'viewer', joinedAt: Date.now() },
+      { id: 'peer-1', role: 'viewer', joinedAt: Date.now() },
       peer1Ws
     );
     room.setBroadcaster(
-      { id: 'peer-2', streamId: 'broadcast-test', role: 'broadcaster', joinedAt: Date.now() },
+      { id: 'peer-2', role: 'broadcaster', joinedAt: Date.now() },
       peer2Ws
     );
 
-    const msg = createMessage('chat_message', { message: 'Hey all!', userName: 'Sender' }, 'broadcast-test', 'sender');
+    const msg = createMessage('chat_message', {
+      id: 'm1',
+      streamId: 'broadcast-test',
+      senderId: 'sender',
+      senderName: 'Sender',
+      text: 'Hey all!',
+      timestamp: Date.now(),
+    }, 'broadcast-test', 'sender');
     room.broadcast(msg, 'sender');
 
     // Sender should NOT receive their own broadcast
@@ -140,7 +147,7 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
       const ws = createMockWebSocket();
       viewerSockets.push(ws);
       room.addViewer(
-        { id: `viewer-${i}`, streamId: 'massive-webinar', role: 'viewer', joinedAt: Date.now() },
+        { id: `viewer-${i}`, role: 'viewer', joinedAt: Date.now() },
         ws
       );
     }
@@ -148,7 +155,14 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
     expect(room.viewers.size).toBe(50);
     expect(room.metadata.viewerCount).toBe(50);
 
-    const announcement = createMessage('chat_message', { message: 'Hello 50 viewers!' }, 'massive-webinar');
+    const announcement = createMessage('chat_message', {
+      id: 'announcement-1',
+      streamId: 'massive-webinar',
+      senderId: 'host',
+      senderName: 'Host',
+      text: 'Hello 50 viewers!',
+      timestamp: Date.now(),
+    }, 'massive-webinar');
     room.broadcastToViewers(announcement);
 
     const raw = JSON.stringify(announcement);
@@ -165,10 +179,17 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
     const wsA = createMockWebSocket();
     const wsB = createMockWebSocket();
 
-    roomA.addViewer({ id: 'viewer-a', streamId: 'room-alpha', role: 'viewer', joinedAt: Date.now() }, wsA);
-    roomB.addViewer({ id: 'viewer-b', streamId: 'room-beta', role: 'viewer', joinedAt: Date.now() }, wsB);
+    roomA.addViewer({ id: 'viewer-a', role: 'viewer', joinedAt: Date.now() }, wsA);
+    roomB.addViewer({ id: 'viewer-b', role: 'viewer', joinedAt: Date.now() }, wsB);
 
-    const msgA = createMessage('chat_message', { text: 'Alpha only' }, 'room-alpha');
+    const msgA = createMessage('chat_message', {
+      id: 'msg-a',
+      streamId: 'room-alpha',
+      senderId: 'viewer-a',
+      senderName: 'Viewer A',
+      text: 'Alpha only',
+      timestamp: Date.now(),
+    }, 'room-alpha');
     roomA.broadcastToViewers(msgA);
 
     expect((wsA as any)._sentMessages.length).toBe(1);
@@ -187,10 +208,17 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
       },
     } as unknown as WebSocket;
 
-    room.addViewer({ id: 'healthy', streamId: 'fault-tolerant-room', role: 'viewer', joinedAt: Date.now() }, healthyWs);
-    room.addViewer({ id: 'broken', streamId: 'fault-tolerant-room', role: 'viewer', joinedAt: Date.now() }, brokenWs);
+    room.addViewer({ id: 'healthy', role: 'viewer', joinedAt: Date.now() }, healthyWs);
+    room.addViewer({ id: 'broken', role: 'viewer', joinedAt: Date.now() }, brokenWs);
 
-    const msg = createMessage('chat_message', { text: 'Safe broadcast' }, 'fault-tolerant-room');
+    const msg = createMessage('chat_message', {
+      id: 'safe-msg',
+      streamId: 'fault-tolerant-room',
+      senderId: 'healthy',
+      senderName: 'Healthy',
+      text: 'Safe broadcast',
+      timestamp: Date.now(),
+    }, 'fault-tolerant-room');
 
     // Should not throw or crash
     expect(() => room.broadcastToViewers(msg)).not.toThrow();
@@ -203,12 +231,12 @@ describe('StreamRoomManager & Participant Lifecycle Edge Cases', () => {
     const room = manager.getOrCreateRoom('keynote');
 
     const host1 = createMockWebSocket();
-    room.setBroadcaster({ id: 'host-v1', streamId: 'keynote', role: 'broadcaster', joinedAt: Date.now() }, host1);
+    room.setBroadcaster({ id: 'host-v1', role: 'broadcaster', joinedAt: Date.now() }, host1);
     expect(room.broadcaster?.participant.id).toBe('host-v1');
 
     // Host reconnects with a new socket / session ID
     const host2 = createMockWebSocket();
-    room.setBroadcaster({ id: 'host-v2', streamId: 'keynote', role: 'broadcaster', joinedAt: Date.now() }, host2);
+    room.setBroadcaster({ id: 'host-v2', role: 'broadcaster', joinedAt: Date.now() }, host2);
     expect(room.broadcaster?.participant.id).toBe('host-v2');
     expect(room.isLive).toBe(true);
   });

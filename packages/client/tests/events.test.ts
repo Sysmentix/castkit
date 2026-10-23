@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { TypedEventEmitter } from '../src/core/events.js';
 
 interface TestEvents {
-  statusChange: (status: string) => void;
-  viewerCount: (count: number) => void;
-  error: (err: Error) => void;
+  statusChange: string;
+  viewerCount: number;
+  error: Error;
 }
 
 describe('TypedEventEmitter Edge Cases', () => {

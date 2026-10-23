@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RESOLUTION_PRESETS, ResolutionPreset } from '../src/core/constants.js';
+import { RESOLUTION_PRESETS, ResolutionPreset } from '../src/core/index.js';
 
 describe('Resolution Presets & Framerate Edge Cases', () => {
   it('should define 60fps high-bitrate presets (1080p60 and 720p60)', () => {
