@@ -87,6 +87,12 @@ jobs:
           git push origin main
           git push origin "v${NEW_VER}"
 
+      - name: 🔐 Authenticate with npm
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: 📦 Install Dependencies
         run: npm ci
 
