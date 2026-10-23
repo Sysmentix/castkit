@@ -1,25 +1,27 @@
 name: Publish Packages to npm
 
 on:
-  release:
-    types: [published]
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
+      action:
+        description: 'Release Action'
+        required: true
+        default: 'create-release-pr'
+        type: choice
+        options:
+          - 'create-release-pr'
+          - 'publish-to-npm'
       bump:
-        description: 'Version Bump'
+        description: 'Version Bump (for create-release-pr)'
         required: true
         default: 'patch'
         type: choice
         options:
-          - 'patch' # 1.0.1 -> 1.0.2 (Bug fixes & small improvements)
-          - 'minor' # 1.0.1 -> 1.1.0 (New features, backward compatible)
-          - 'major' # 1.0.1 -> 2.0.0 (Breaking API changes)
-          - 'none'  # Keep current version in package.json
+          - 'patch' # 1.0.2 -> 1.0.3
+          - 'minor' # 1.0.2 -> 1.1.0
+          - 'major' # 1.0.2 -> 2.0.0
       target:
-        description: 'Package to publish'
+        description: 'Target Package'
         required: true
         default: 'all'
         type: choice
@@ -29,11 +31,17 @@ on:
           - 'castkit-client'
 
 permissions:
-  contents: write   # Required to commit version bumps, push git tags, and create releases
-  id-token: write   # Required for npm provenance cryptographic signing
+  contents: write
+  pull-requests: write
+  id-token: write
 
 jobs:
-  publish:
+  # =========================================================================
+  # Job 1: Automated Release PR (Complies with branch rulesets on main)
+  # =========================================================================
+  release_pr:
+    name: 📝 Create Release Pull Request
+    if: ${{ github.event.inputs.action == 'create-release-pr' }}
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout Repository
@@ -46,46 +54,89 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org/'
-          cache: 'npm'
 
-      - name: 🔢 Auto-increment Version (if requested)
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bump != 'none' }}
-        id: versioning
+      - name: 🔢 Bump Version & Open Pull Request
+        id: create_pr
         run: |
           BUMP="${{ github.event.inputs.bump }}"
           TARGET="${{ github.event.inputs.target }}"
-          
-          echo "Bumping versions with mode: $BUMP on target: $TARGET"
-          
+
+          echo "Preparing release branch with bump: $BUMP on target: $TARGET"
+
           # Bump packages based on target
           if [ "$TARGET" = "all" ] || [ "$TARGET" = "castkit-server" ]; then
             cd packages/server && npm version "$BUMP" --no-git-tag-version && cd ../..
           fi
-          
+
           if [ "$TARGET" = "all" ] || [ "$TARGET" = "castkit-client" ]; then
             cd packages/client && npm version "$BUMP" --no-git-tag-version && cd ../..
           fi
 
-          # Read latest version
+          # Read new version
           if [ "$TARGET" = "castkit-client" ]; then
             NEW_VER=$(node -p "require('./packages/client/package.json').version")
           else
             NEW_VER=$(node -p "require('./packages/server/package.json').version")
           fi
-          
-          echo "new_version=$NEW_VER" >> $GITHUB_OUTPUT
-          
-          # Git configuration
+
+          BRANCH="release/v${NEW_VER}"
+          echo "Creating branch: $BRANCH"
+
+          # Configure git identity
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          git checkout main
+
+          # Create branch and push to origin
+          git checkout -b "$BRANCH"
           git add packages/
-          git commit -m "chore(release): bump version to v${NEW_VER} [skip ci]"
-          git tag "v${NEW_VER}"
-          git push origin main
-          git push origin "v${NEW_VER}"
+          git commit -m "chore(release): bump version to v${NEW_VER}"
+          git push origin "$BRANCH" --force
+
+          # Open Pull Request targeting main
+          PR_URL=$(gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "chore(release): bump version to v${NEW_VER}" \
+            --body "## 🚀 Release v${NEW_VER}
+
+This automated release PR bumps package versions in preparation for publishing to npm:
+- **Target**: \`${TARGET}\`
+- **Bump Mode**: \`${BUMP}\`
+- **New Version**: \`v${NEW_VER}\`
+
+### 📋 Release Instructions
+1. Review the changes and verify that CI checks pass.
+2. Click **Merge pull request** to merge into \`main\`.
+3. Once merged into \`main\`, navigate to **Actions** ➔ **Publish Packages to npm** ➔ **Run workflow** with action **\`publish-to-npm\`** to publish!
+" || gh pr list --head "$BRANCH" --json url --jq '.[0].url')
+
+          echo "PR_URL=$PR_URL" >> $GITHUB_OUTPUT
+
+          echo "### 🚀 Release PR Created!" >> $GITHUB_STEP_SUMMARY
+          echo "A release Pull Request has been opened targeting \`main\`:" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View and Merge Pull Request]($PR_URL)" >> $GITHUB_STEP_SUMMARY
+        env:
+          GH_TOKEN: ${{ secrets.ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
+
+  # =========================================================================
+  # Job 2: Build, Test & Publish to npm (Manual trigger only)
+  # =========================================================================
+  publish:
+    name: 🚀 Publish Packages to npm
+    if: ${{ github.event.inputs.action == 'publish-to-npm' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org/'
+          cache: 'npm'
 
       - name: 🔐 Authenticate with npm
         if: ${{ env.NODE_AUTH_TOKEN != '' }}
@@ -100,24 +151,66 @@ jobs:
       - name: 🔨 Build All Packages
         run: npm run build
 
-      - name: 🚀 Publish castkit-server
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all' || github.event.inputs.target == 'castkit-server' }}
+      - name: 🧪 Run Test Suite
+        run: npm test
+
+      - name: 🔍 Check and Publish castkit-server
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'castkit-server' }}
+        id: publish_server
         run: |
-          npm publish --workspace=castkit-server --access public --provenance
+          SERVER_LOCAL=$(node -p "require('./packages/server/package.json').version")
+          SERVER_NPM=$(npm view castkit-server version 2>/dev/null || echo "0.0.0")
+
+          echo "castkit-server local version: $SERVER_LOCAL, npm version: $SERVER_NPM"
+
+          if [ "$SERVER_LOCAL" != "$SERVER_NPM" ]; then
+            echo "Publishing castkit-server@$SERVER_LOCAL..."
+            npm publish --workspace=castkit-server --access public --provenance
+            echo "server_published=true" >> $GITHUB_OUTPUT
+            echo "server_version=$SERVER_LOCAL" >> $GITHUB_OUTPUT
+          else
+            echo "castkit-server@$SERVER_LOCAL is already published on npm. Skipping."
+            echo "server_published=false" >> $GITHUB_OUTPUT
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: 🚀 Publish castkit-client
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.target == 'all' || github.event.inputs.target == 'castkit-client' }}
+      - name: 🔍 Check and Publish castkit-client
+        if: ${{ github.event.inputs.target == 'all' || github.event.inputs.target == 'castkit-client' }}
+        id: publish_client
         run: |
-          npm publish --workspace=castkit-client --access public --provenance
+          CLIENT_LOCAL=$(node -p "require('./packages/client/package.json').version")
+          CLIENT_NPM=$(npm view castkit-client version 2>/dev/null || echo "0.0.0")
+
+          echo "castkit-client local version: $CLIENT_LOCAL, npm version: $CLIENT_NPM"
+
+          if [ "$CLIENT_LOCAL" != "$CLIENT_NPM" ]; then
+            echo "Publishing castkit-client@$CLIENT_LOCAL..."
+            npm publish --workspace=castkit-client --access public --provenance
+            echo "client_published=true" >> $GITHUB_OUTPUT
+            echo "client_version=$CLIENT_LOCAL" >> $GITHUB_OUTPUT
+          else
+            echo "castkit-client@$CLIENT_LOCAL is already published on npm. Skipping."
+            echo "client_published=false" >> $GITHUB_OUTPUT
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: 🏷️ Create GitHub Release
-        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bump != 'none' }}
+      - name: 🏷️ Create Git Tag and GitHub Release
+        if: ${{ steps.publish_server.outputs.server_published == 'true' || steps.publish_client.outputs.client_published == 'true' }}
         run: |
-          TAG="v${{ steps.versioning.outputs.new_version }}"
-          gh release create "$TAG" --title "Release $TAG" --generate-notes
+          RELEASE_VER="${{ steps.publish_server.outputs.server_version || steps.publish_client.outputs.client_version }}"
+          TAG="v${RELEASE_VER}"
+
+          echo "Creating tag and GitHub release for $TAG"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Tag and push tag (tags are outside branch rulesets)
+          git tag "$TAG" || true
+          git push origin "$TAG" || true
+
+          # Create GitHub Release
+          gh release create "$TAG" --title "Release $TAG" --generate-notes || true
         env:
           GH_TOKEN: ${{ secrets.ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
