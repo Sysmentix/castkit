@@ -97,18 +97,8 @@ jobs:
             --base main \
             --head "$BRANCH" \
             --title "chore(release): bump version to v${NEW_VER}" \
-            --body "## 🚀 Release v${NEW_VER}
-
-This automated release PR bumps package versions in preparation for publishing to npm:
-- **Target**: \`${TARGET}\`
-- **Bump Mode**: \`${BUMP}\`
-- **New Version**: \`v${NEW_VER}\`
-
-### 📋 Release Instructions
-1. Review the changes and verify that CI checks pass.
-2. Click **Merge pull request** to merge into \`main\`.
-3. Once merged into \`main\`, navigate to **Actions** ➔ **Publish Packages to npm** ➔ **Run workflow** with action **\`publish-to-npm\`** to publish!
-" || gh pr list --head "$BRANCH" --json url --jq '.[0].url')
+            --body "Automated release PR for v${NEW_VER}. Target: ${TARGET}, Bump: ${BUMP}. Once merged, run publish-to-npm to publish to npm." \
+            || gh pr list --head "$BRANCH" --json url --jq '.[0].url')
 
           echo "PR_URL=$PR_URL" >> $GITHUB_OUTPUT
 
